@@ -36,7 +36,8 @@ function App() {
   const listener = (event: any) => {
     try {
       const { type, data } = JSON.parse(event.data);
-  
+      // console.log(event)
+      
       switch (type) {
         case "CURRENT_LOCATION":
           onLocation(data.lat, data.lng);
@@ -124,6 +125,7 @@ function App() {
   }
 
   useEffect(() => {
+    if (!map) return;
     document.addEventListener("message", listener);
     window.addEventListener("message", listener);
 
@@ -131,7 +133,7 @@ function App() {
       document.removeEventListener("message", listener);
       window.removeEventListener("message", listener);
     }
-  }, [])
+  }, [map])
 
   useEffect(() => {
     if (!map) return;
@@ -139,14 +141,22 @@ function App() {
   }, [map])
   
   const postMessage = (type: any, data: any) => {
-    if (!window.ReactNativeWebView) return;
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type,
+          data,
+        })
+      );
+    } else if (window.parent) {
+      window.parent.postMessage(
+        JSON.stringify({
+          type,
+          data,
+        }),
+      );
+    }
   
-    window.ReactNativeWebView.postMessage(
-      JSON.stringify({
-        type,
-        data,
-      })
-    );
   }
 
   return (
@@ -175,7 +185,11 @@ function App() {
               height: 35
             }, // 마커이미지의 크기입니다
           }}
-          onClick={marker.onClick}
+          onClick={(m) => {
+            if (marker.onClick) {
+              marker.onClick();
+            }
+          }}
         />
       ))}
     </Map>
